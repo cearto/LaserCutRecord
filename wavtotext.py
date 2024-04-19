@@ -9,33 +9,40 @@ import struct
 
 bitDepth = 8#target bitDepth
 frate = 44100#target frame rate
-
-fileName = "space.wav"#file to be imported (change this)
+fileName = "heartbeatloop.wav"#file to be imported (change this)
 
 #read file and get data
 w = wave.open(fileName, 'r')
+sample_width = w.getsampwidth()
+channels = w.getnchannels()
+
+print(f"FILE: {fileName}")
+if channels == 1:
+    print("This is a mono audio file.")
+else:
+    print("This is a stereo audio file.")
+
+if sample_width == 1:
+    print("This is an 8-bit audio file.")
+elif sample_width == 2:
+    print("This is a 16-bit audio file.")
+else:
+    print("This audio file has a different bit depth.")
+
 numframes = w.getnframes()
 
-frame = w.readframes(numframes)#w.getnframes()
-
-frameInt = map(ord, list(frame))#turn into array
+frames = w.readframes(numframes)
 
 #separate left and right channels and merge bytes
-frameOneChannel = [0]*numframes#initialize list of one channel of wave
-for i in range(numframes):
-    frameOneChannel[i] = frameInt[4*i+1]*2**8+frameInt[4*i]#separate channels and store one channel in new list
-    if frameOneChannel[i] > 2**15:
-        frameOneChannel[i] = (frameOneChannel[i]-2**16)
-    elif frameOneChannel[i] == 2**15:
-        frameOneChannel[i] = 0
-    else:
-        frameOneChannel[i] = frameOneChannel[i]
+if channels == 1:
+    left = [struct.unpack('<h', frames[i:i+2])[0] for i in range(0, len(frames), 2)]
+if channels == 2:
+    left = [struct.unpack('<h', frames[i:i+4])[0] for i in range(0, len(frames), 4)]
+    right = [struct.unpack('<h', frames[i+2:i+4])[0] for i in range(0, len(frames), 4)]
 
-#convert to string
-audioStr = ''
-for i in range(numframes):
-    audioStr += str(frameOneChannel[i])
-    audioStr += ","#separate elements with comma
+
+# convert to string
+audioStr = ','.join(map(str, left))
 
 fileName = fileName[:-3]#remove .wav extension
 text_file = open(fileName+"txt", "w")
